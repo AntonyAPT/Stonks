@@ -55,6 +55,10 @@ class PatchTSTClassifier(nn.Module):
 
     The forward signature intentionally accepts `past_values` and `labels` so it
     plugs into `transformers.Trainer` with the dataset in `dataset_utils.py`.
+
+    Pass `num_industries > 0` to enable a learned sub-industry embedding that is
+    concatenated onto the flattened encoder output before the final projection.
+    The dataset must then supply an `industry_id` integer tensor per window.
     """
 
     def __init__(
@@ -64,6 +68,8 @@ class PatchTSTClassifier(nn.Module):
         n_classes: int = 3,
         class_weights: Optional[torch.Tensor] = None,
         head_dropout: Optional[float] = None,
+        num_industries: int = 0,
+        industry_embedding_dim: int = 8,
     ) -> None:
         super().__init__()
         self.config = config
@@ -84,6 +90,16 @@ class PatchTSTClassifier(nn.Module):
             dropout=dropout,
         )
 
+        # Industry embedding: concatenated onto flattened encoder output.
+        # A separate LazyLinear projects the combined vector to logits.
+        self.num_industries = int(num_industries)
+        if self.num_industries > 0:
+            self.industry_embedding = nn.Embedding(num_industries, industry_embedding_dim)
+            self.industry_projection = nn.LazyLinear(self.horizon * self.n_classes)
+        else:
+            self.industry_embedding = None
+            self.industry_projection = None
+
         if class_weights is not None:
             self.register_buffer("class_weights", class_weights.float())
         else:
@@ -100,10 +116,11 @@ class PatchTSTClassifier(nn.Module):
     def _materialize_lazy_params(self) -> None:
         n_channels = int(getattr(self.config, "num_input_channels", 1))
         dummy = torch.zeros(1, int(self.config.context_length), n_channels)
+        dummy_industry = torch.zeros(1, dtype=torch.long) if self.num_industries > 0 else None
         was_training = self.training
         self.eval()
         with torch.no_grad():
-            self(past_values=dummy)
+            self(past_values=dummy, industry_id=dummy_industry)
         if was_training:
             self.train()
 
@@ -122,6 +139,7 @@ class PatchTSTClassifier(nn.Module):
         labels: Optional[torch.Tensor] = None,
         class_labels: Optional[torch.Tensor] = None,
         future_values: Optional[torch.Tensor] = None,
+        industry_id: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> PatchTSTClassifierOutput:
         del future_values
@@ -136,7 +154,14 @@ class PatchTSTClassifier(nn.Module):
         model_kwargs = {key: value for key, value in kwargs.items() if key in allowed_model_kwargs}
         outputs = self.patchtst(past_values=past_values, **model_kwargs)
         hidden_states = self._encoder_states(outputs)
-        logits = self.classifier(hidden_states)
+
+        if self.industry_embedding is not None and industry_id is not None:
+            flat = self.classifier.dropout(hidden_states).reshape(hidden_states.shape[0], -1)
+            ind_emb = self.industry_embedding(industry_id.to(hidden_states.device))
+            combined = torch.cat([flat, ind_emb], dim=-1)
+            logits = self.industry_projection(combined).view(-1, self.horizon, self.n_classes)
+        else:
+            logits = self.classifier(hidden_states)
 
         loss = None
         if label_tensor is not None:
