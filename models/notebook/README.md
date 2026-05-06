@@ -9,6 +9,12 @@ The notebook predicts one class for each of the next five trading days:
 - `1`: roughly flat close
 - `2`: significantly higher close
 
+The notebook keeps normal 3-class `accuracy` and `macro_f1`, and also reports
+`directional_accuracy` / `directional_macro_f1`, where predicted `flat` acts as
+no trade and is excluded from scoring. Always read these together with
+`directional_coverage`, the share of predictions where the model chose `up` or
+`down`.
+
 The first working label rule is a fixed percentage threshold. You can later swap
 it for rolling-volatility or ATR thresholds by changing `LABEL_RULE` and related
 hyperparameters in the notebook config cell.
