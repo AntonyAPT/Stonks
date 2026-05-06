@@ -134,7 +134,8 @@ git push
 
 ```bash
 KAGGLE_CONFIG_DIR="$HOME/.config/kaggle" kaggle kernels push -p models/notebook --accelerator NvidiaTeslaT4
-# accelerator flag determines what gpu to use for model training
+# The metadata also requests enable_gpu=true and machine_shape=NvidiaTeslaT4.
+# If Kaggle starts without CUDA, the notebook now fails fast instead of training on CPU.
 # must have latest Kaggle CLI installed. Look at 'kaggle_cli_setup.md' for more info and troubleshooting 
 # Note: To use gpu's you need to verify your account with your phone number
 ```
