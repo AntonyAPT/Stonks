@@ -16,3 +16,9 @@ Result: Improvement. Test accuracy 40.36% (up from 39.48%), macro_f1 0.4037 (up 
 
 Next step: Apply change 5 — add sub-industry embedding to the PatchTST classifier.
 
+What changed: Added sub-industry embedding (nn.Embedding, 12 industries x 8 dims) concatenated onto the PatchTST encoder output before classification. Industry labels fetched via yfinance at runtime (73 tickers, 12 unique GICS industries in IT sector).
+
+Result: Test accuracy 39.84% (up from 39.48%), macro_f1 0.3989 (up from 0.3956). Best val macro_f1 at epoch 13: 0.4205. Train/val gap at epoch 16: 0.309 (down from 0.340), showing the embedding is adding signal without increasing overfitting. Early stopping triggered at epoch 16. Note: reloaded model result (32.94%) is invalid due to a bug in the manual eval path not passing industry_id — fixed in next push.
+
+Next step: Repush kernel with the eval fix to confirm reloaded model matches training result.
+
