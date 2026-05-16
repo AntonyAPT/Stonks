@@ -1,5 +1,5 @@
 #!/bin/bash
-KERNEL=${1:-"michaelfman/patchtst-new-branch-test-sector"} # matches 'id' in kernel-metadata.json
+KERNEL=${1:-"kingz101/patchtst-new-branch-test-sector"} # matches 'id' in kernel-metadata.json
 
 echo "Pulling training artifacts and predictions..."
 
