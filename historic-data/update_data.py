@@ -141,6 +141,12 @@ def update_csv(csv_path: Path, new_rows: pd.DataFrame) -> None:
     print(f"CSV updated to {combined['date'].max()}")
 
 
+def dataframe_records(frame: pd.DataFrame) -> list[dict]:
+    records = frame.replace([float("inf"), float("-inf")], pd.NA)
+    records = records.astype(object).where(pd.notnull(records), None)
+    return records.to_dict(orient="records")
+
+
 def upsert_rows(client, table_name: str, rows: list[dict], batch_size: int) -> None:
     print(f"Pushing {len(rows):,} new row(s) to Supabase table '{table_name}'...")
     for start in range(0, len(rows), batch_size):
@@ -185,7 +191,7 @@ def main() -> None:
     if not args.no_csv:
         update_csv(args.csv_path, new_rows)
 
-    upsert_rows(client, args.table, new_rows.to_dict(orient="records"), args.batch_size)
+    upsert_rows(client, args.table, dataframe_records(new_rows), args.batch_size)
     print("Done. Historic data is up to date.")
 
 
