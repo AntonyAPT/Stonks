@@ -1,0 +1,24 @@
+What changed: Added weight_decay=0.01, lr_scheduler_type='cosine', warmup_ratio=0.05, and increased epochs to 25.
+
+Result: Negligible improvement. Test accuracy unchanged at 39.39%, val macro_f1 marginally better (0.422 vs 0.418). Overfitting got worse — train/val loss gap doubled. Early stopping triggered at epoch 16.
+
+Next step: Apply change 2 — dropout 0.2 → 0.3.
+
+What changed: Increased dropout from 0.2 to 0.3 (both dropout and head_dropout in make_patchtst_config).
+
+Result: Small improvement. Test accuracy 39.48% (up from 39.39%), macro_f1 0.3956 (up from 0.3939). Train/val loss gap shrank slightly (0.340 vs 0.374), meaning dropout is starting to reduce overfitting. Early stopping triggered at epoch 16, best model saved at epoch 13.
+
+Next step: Apply change 3 — GLOBAL_NUM_EPOCHS already set to 25, proceed to change 4: LABEL_RULE = rolling_vol.
+
+What changed: Switched LABEL_RULE from 'fixed_pct' to 'rolling_vol' (vol_window=21, vol_k=0.5), making class boundaries adaptive to recent volatility instead of a fixed +/-1% threshold.
+
+Result: Improvement. Test accuracy 40.36% (up from 39.48%), macro_f1 0.4037 (up from 0.3956). Train/val loss gap shrank to 0.199 (from 0.340), suggesting adaptive labels reduce overfitting. Early stopping triggered at epoch 15, best model saved at epoch 12.
+
+Next step: Apply change 5 — add sub-industry embedding to the PatchTST classifier.
+
+What changed: Added sub-industry embedding (nn.Embedding, 12 industries x 8 dims) concatenated onto the PatchTST encoder output before classification. Industry labels fetched via yfinance at runtime (73 tickers, 12 unique GICS industries in IT sector).
+
+Result: Test accuracy 39.84% (up from 39.48%), macro_f1 0.3989 (up from 0.3956). Best val macro_f1 at epoch 13: 0.4205. Train/val gap at epoch 16: 0.309 (down from 0.340), showing the embedding is adding signal without increasing overfitting. Early stopping triggered at epoch 16. Note: reloaded model result (32.94%) is invalid due to a bug in the manual eval path not passing industry_id — fixed in next push.
+
+Next step: Repush kernel with the eval fix to confirm reloaded model matches training result.
+

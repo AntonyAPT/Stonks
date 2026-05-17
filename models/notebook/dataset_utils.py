@@ -30,6 +30,10 @@ class StockWindowClassificationDataset(Dataset):
     `values_df` should contain the feature values used by the model. It can be a
     scaled/preprocessed DataFrame. `label_df` should contain the original close,
     high, and low values so label thresholds remain financially meaningful.
+
+    Pass `ticker_industry` (dict mapping ticker → industry string) to enable
+    industry embeddings. Pass `industry_to_id` from the training dataset when
+    constructing val/test splits so all splits share the same mapping.
     """
 
     def __init__(
@@ -42,6 +46,8 @@ class StockWindowClassificationDataset(Dataset):
         label_config: LabelConfig,
         timestamp_column: str = "Date",
         ticker_column: str = "Ticker",
+        ticker_industry: Optional[Dict[str, str]] = None,
+        industry_to_id: Optional[Dict[str, int]] = None,
     ) -> None:
         self.target_columns = list(target_columns)
         self.context_length = int(context_length)
@@ -58,6 +64,19 @@ class StockWindowClassificationDataset(Dataset):
             raise ValueError(f"values_df is missing columns: {sorted(missing_values)}")
         if missing_labels:
             raise ValueError(f"label_df is missing columns: {sorted(missing_labels)}")
+
+        # Build industry → integer mapping
+        if ticker_industry:
+            self.ticker_industry = ticker_industry
+            if industry_to_id is not None:
+                self.industry_to_id = industry_to_id
+            else:
+                all_industries = sorted(set(ticker_industry.values()))
+                self.industry_to_id = {ind: i for i, ind in enumerate(all_industries)}
+        else:
+            self.ticker_industry = {}
+            self.industry_to_id = {}
+        self.num_industries = len(self.industry_to_id)
 
         label_df = add_label_features(label_df.copy(), vol_window=label_config.vol_window, ticker_column=ticker_column)
         values_df = values_df.copy()
@@ -132,13 +151,19 @@ class StockWindowClassificationDataset(Dataset):
         return len(self.windows)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        past_values, labels, future_values, _ = self.windows[idx]
-        return {
+        past_values, labels, future_values, meta = self.windows[idx]
+        item = {
             "past_values": torch.tensor(past_values, dtype=torch.float32),
             "labels": torch.tensor(labels, dtype=torch.long),
             "class_labels": torch.tensor(labels, dtype=torch.long),
             "future_values": torch.tensor(future_values, dtype=torch.float32),
         }
+        if self.industry_to_id:
+            industry = self.ticker_industry.get(meta.ticker, "Unknown")
+            item["industry_id"] = torch.tensor(
+                self.industry_to_id.get(industry, 0), dtype=torch.long
+            )
+        return item
 
     def metadata(self, idx: int) -> WindowMetadata:
         return self.windows[idx][3]

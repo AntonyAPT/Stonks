@@ -253,6 +253,58 @@ tensorboard --logdir ./checkpoint/patchtst_cls/
 
 ---
 
+## Local Inference
+
+After pulling Kaggle outputs, generate a local recommendation CSV with:
+
+```bash
+cd models/notebook
+python local_inference.py --tickers AAPL MSFT NVDA
+```
+
+For the full universe:
+
+```bash
+python local_inference.py --sp500-tickers
+```
+
+By default this reads `save_dir/patchtst_cls_sector_all_11_sectors`, fetches
+historic rows from Supabase, and writes `save_dir/latest_recommendations.csv`.
+If `ticker_industry.json` is missing, the script can still run by using the
+model's `Unknown` industry embedding, but predictions are more faithful if you
+provide or build the ticker-to-industry map.
+
+To store the generated rows for the website:
+
+1. Run `docs/model_recommendations.sql` once in the Supabase SQL editor.
+2. Set a write-capable key locally, preferably the Supabase service role key:
+
+```bash
+export SUPABASE_RECOMMENDATIONS_KEY="<service-role-key>"
+```
+
+3. Run inference with Supabase upsert enabled:
+
+```bash
+python local_inference.py --tickers AAPL MSFT NVDA --write-supabase
+```
+
+For the daily automated workflow, set these GitHub repository secrets:
+
+```text
+KAGGLE_USERNAME
+KAGGLE_KEY
+SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_URL
+```
+
+Then run **Daily Model Recommendations** manually from the GitHub Actions tab
+once to confirm it can pull the Kaggle model artifacts, update `historic_data`,
+and upsert `model_recommendations`. After that it runs daily on the cron
+schedule in `.github/workflows/daily-model-recommendations.yml`.
+
+---
+
 ## IBM Granite Baseline
 
 The IBM Granite cells load `ibm-granite/granite-timeseries-patchtst` as a

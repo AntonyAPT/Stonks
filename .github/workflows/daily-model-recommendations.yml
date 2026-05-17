@@ -1,0 +1,82 @@
+name: Daily Model Recommendations
+
+on:
+  schedule:
+    # 08:00 UTC is after the prior US market day has settled.
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+    inputs:
+      kaggle_kernel:
+        description: "Kaggle kernel slug to pull model outputs from"
+        required: false
+        default: "antonyapt/patchtst-new-branch-test-sector"
+
+concurrency:
+  group: daily-model-recommendations
+  cancel-in-progress: false
+
+jobs:
+  update-and-infer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      KAGGLE_KERNEL: ${{ github.event.inputs.kaggle_kernel || vars.KAGGLE_KERNEL || 'antonyapt/patchtst-new-branch-test-sector' }}
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_RECOMMENDATIONS_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for name in KAGGLE_USERNAME KAGGLE_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install kaggle -r models/notebook/requirements.txt
+
+      - name: Pull latest Kaggle model artifacts
+        run: |
+          cd models/notebook
+          bash pull_results.sh "$KAGGLE_KERNEL"
+          test -f save_dir/patchtst_cls_sector_all_11_sectors/pytorch_model.bin
+          test -f save_dir/patchtst_cls_sector_all_11_sectors/training_metadata.json
+
+      - name: Update historic market data
+        run: python historic-data/update_data.py --no-csv
+
+      - name: Generate and publish recommendations
+        run: >
+          python models/notebook/local_inference.py
+          --sp500-tickers
+          --write-supabase
+          --device cpu
+          --build-industry-map
+
+      - name: Upload latest recommendations CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-recommendations
+          path: models/notebook/save_dir/latest_recommendations.csv
+          if-no-files-found: ignore
+          retention-days: 14

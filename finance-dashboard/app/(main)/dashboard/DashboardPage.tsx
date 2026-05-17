@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { DashboardWatchlistItem } from "./page";
 import type { StockQuote } from "@/app/api/stockquote/route";
+import type { ModelRecommendation } from "@/types/model-recommendations";
 import { PortfolioPanel } from "./PortfolioPanel";
 import type { PortfolioItem } from "./PortfolioPanel";
 
@@ -24,6 +25,8 @@ export default function DashboardPage({
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [allQuotes, setAllQuotes] = useState<Record<string, StockQuote>>({});
+  const [recommendations, setRecommendations] = useState<ModelRecommendation[]>([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
 
   // Compute net holdings (shares per ticker) from portfolio items
   const holdingsMap: Record<string, number> = {};
@@ -58,6 +61,24 @@ export default function DashboardPage({
       .catch(console.error);
   }, [watchlistItems, portfolioItems]);
 
+  useEffect(() => {
+    fetch("/api/recommendations?forecast_day=1&limit=4")
+      .then((r) => r.json())
+      .then((data: ModelRecommendation[] | { error?: string }) => {
+        if (Array.isArray(data)) {
+          setRecommendations(data);
+        } else {
+          console.error(data.error ?? "Failed to load recommendations");
+          setRecommendations([]);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setRecommendations([]);
+      })
+      .finally(() => setRecommendationsLoading(false));
+  }, []);
+
   // Portfolio stats derived from live quotes
   const portfolioValue = activeHoldings.reduce(
     (sum, [ticker, shares]) => sum + shares * (allQuotes[ticker]?.currentPrice ?? 0),
@@ -69,6 +90,10 @@ export default function DashboardPage({
   );
   const prevPortfolioValue = portfolioValue - todayPnl;
   const portfolioPctChange = prevPortfolioValue > 0 ? (todayPnl / prevPortfolioValue) * 100 : 0;
+  const avgConfidence =
+    recommendations.length > 0
+      ? recommendations.reduce((sum, item) => sum + item.confidence, 0) / recommendations.length
+      : 0;
 
   // Price map passed to PortfolioPanel so it doesn't need to re-fetch
   const portfolioPriceMap: Record<string, number> = {};
@@ -126,14 +151,14 @@ export default function DashboardPage({
             />
             <StatCard
               label="Active Predictions"
-              value="23"
-              change="+5"
+              value={recommendationsLoading ? "—" : String(recommendations.length)}
+              change={recommendations[0]?.contextEnd ?? "—"}
               isPositive={true}
             />
             <StatCard
-              label="Accuracy Rate"
-              value="78.4%"
-              change="+3.2%"
+              label="Avg Confidence"
+              value={avgConfidence > 0 ? `${Math.round(avgConfidence * 100)}%` : "—"}
+              change="Day 1"
               isPositive={true}
             />
           </div>
@@ -147,34 +172,26 @@ export default function DashboardPage({
             <div className="glass rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-6">AI Predictions</h2>
               <div className="space-y-4">
-                <PredictionCard
-                  ticker="AAPL"
-                  prediction="BUY"
-                  confidence={87}
-                  change="+2.4%"
-                  isPositive={true}
-                />
-                <PredictionCard
-                  ticker="TSLA"
-                  prediction="HOLD"
-                  confidence={72}
-                  change="+0.8%"
-                  isPositive={true}
-                />
-                <PredictionCard
-                  ticker="NVDA"
-                  prediction="BUY"
-                  confidence={91}
-                  change="+3.2%"
-                  isPositive={true}
-                />
-                <PredictionCard
-                  ticker="AMZN"
-                  prediction="SELL"
-                  confidence={68}
-                  change="-1.2%"
-                  isPositive={false}
-                />
+                {recommendationsLoading ? (
+                  <p className="text-slate-500 text-sm text-center py-6">
+                    Loading predictions...
+                  </p>
+                ) : recommendations.length === 0 ? (
+                  <p className="text-slate-500 text-sm text-center py-6">
+                    No model predictions found
+                  </p>
+                ) : (
+                  recommendations.map((item) => (
+                    <PredictionCard
+                      key={`${item.ticker}-${item.forecastDay}`}
+                      ticker={item.ticker}
+                      prediction={item.recommendation}
+                      confidence={Math.round(item.confidence * 100)}
+                      detail={`Day ${item.forecastDay} • ${item.predictedDirection}`}
+                      isPositive={item.recommendation !== "SELL"}
+                    />
+                  ))
+                )}
               </div>
             </div>
 
@@ -182,12 +199,15 @@ export default function DashboardPage({
             <div className="lg:col-span-2 glass rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
               <div className="space-y-4">
-                <ActivityItem
-                  action="New prediction generated"
-                  ticker="AAPL"
-                  time="2 minutes ago"
-                  type="prediction"
-                />
+                {recommendations.slice(0, 2).map((item) => (
+                  <ActivityItem
+                    key={`activity-${item.ticker}-${item.forecastDay}`}
+                    action={`${item.recommendation} prediction generated`}
+                    ticker={item.ticker}
+                    time={item.contextEnd}
+                    type="prediction"
+                  />
+                ))}
                 <ActivityItem
                   action="Portfolio updated"
                   ticker="TSLA"
@@ -293,13 +313,13 @@ function PredictionCard({
   ticker,
   prediction,
   confidence,
-  change,
+  detail,
   isPositive,
 }: {
   ticker: string;
   prediction: string;
   confidence: number;
-  change: string;
+  detail: string;
   isPositive: boolean;
 }) {
   const getPredictionClass = (pred: string) => {
@@ -317,7 +337,7 @@ function PredictionCard({
             isPositive ? "text-positive" : "text-negative"
           }`}
         >
-          {change}
+          {detail}
         </span>
       </div>
       <div className="flex items-center justify-between">

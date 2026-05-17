@@ -38,5 +38,11 @@ peft
 # On Kaggle: add %pip install ... in the notebook cell instead.
 # granite-tsfm[notebooks] @ git+https://github.com/ibm-granite/granite-tsfm.git@v0.3.3
 
+# Sub-industry embedding: fetch ticker → industry mapping at runtime.
+yfinance
+supabase
+requests
+lxml
+
 # Optional quantization — Linux/WSL2 with CUDA only.
 # bitsandbytes

@@ -1,7 +1,7 @@
 {
-  "id": "kingz101/patchtst-new-branch-test-sector",
+  "id": "antonyapt/patchtst-new-branch-test-sector",
   "title": "PatchTST New Branch Test Sector",
-  "code_file": "patchtst-new-branch-test.ipynb",
+  "code_file": "patchtst-default.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "true",
