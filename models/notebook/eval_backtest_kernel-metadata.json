@@ -1,0 +1,22 @@
+{
+  "id": "kingz101/patchtst-eval-backtest",
+  "title": "PatchTST Post-Training Eval & Backtest",
+  "code_file": "eval_backtest.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "accelerator": "none",
+  "enable_internet": "true",
+  "dataset_sources": ["kingz101/sp500-daily-raw", "kingz101/patchtst-saved-model"],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "_notes": [
+    "accelerator=none: this notebook never trains — CPU is sufficient.",
+    "To run as a standalone eval kernel (separate from training), you must make the",
+    "saved model files available. Two options:",
+    "  A) Run this notebook appended to the training kernel session (SAVE_DIR=/kaggle/working/save_dir).",
+    "  B) Upload the save_dir/patchtst_cls_sector_all_11_sectors/ folder as a Kaggle dataset,",
+    "     add it to dataset_sources, and update SAVE_DIR in Section 0 of the notebook to",
+    "     point to its /kaggle/input/<dataset-name> mount point."
+  ]
+}
