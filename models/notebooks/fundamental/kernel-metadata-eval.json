@@ -9,6 +9,7 @@
   "enable_internet": "true",
   "dataset_sources": [
     "kingz101/sp500-daily-raw",
+    "kingz101/sp500-quarterly-fundamental",
     "kingz101/patchtst-fundamental-saved-model"
   ],
   "competition_sources": [],
