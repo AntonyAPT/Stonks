@@ -1,0 +1,13 @@
+{
+  "id": "kingz101/patchtst-technical-classifier",
+  "title": "PatchTST Technical Classifier",
+  "code_file": "patchtst-stock-classifier.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "accelerator": "NvidiaTeslaT4",
+  "enable_internet": "true",
+  "dataset_sources": ["kingz101/sp500-daily-raw"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

@@ -1,0 +1,45 @@
+# =============================================================================
+# Kaggle: most packages below are pre-installed — you do NOT need to run
+#         pip install here. See README.md for the Kaggle-first workflow.
+#
+# Local fallback (WSL2 / macOS): install with
+#   pip install -r requirements.txt
+# after manually installing PyTorch for your platform (see README.md).
+# =============================================================================
+
+# Core data / visualization stack
+# (pre-installed on Kaggle; listed here for local parity)
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+
+# Notebook kernel (local only — not needed on Kaggle)
+jupyter
+ipykernel
+
+# PatchTST / Hugging Face training
+# (pre-installed on Kaggle; listed here for local parity)
+# Note: do NOT pin torch/torchvision/torchaudio here — Kaggle ships a
+# consistent CUDA build. For local installs, install PyTorch separately first:
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+# then run pip install -r requirements.txt for the remaining packages.
+transformers
+accelerate
+tensorboard
+huggingface-hub
+
+# LoRA support — kept for parity with the IBM/granite reference notebook.
+# Not used by the from-scratch PatchTST classifier.
+peft
+
+# IBM Granite TSFM baseline — uncomment to enable the zero-shot baseline section.
+# On Kaggle: add %pip install ... in the notebook cell instead.
+# granite-tsfm[notebooks] @ git+https://github.com/ibm-granite/granite-tsfm.git@v0.3.3
+
+# Sub-industry embedding: fetch ticker → industry mapping at runtime.
+yfinance
+
+# Optional quantization — Linux/WSL2 with CUDA only.
+# bitsandbytes

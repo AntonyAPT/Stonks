@@ -1,0 +1,16 @@
+{
+  "id": "kingz101/patchtst-technical-eval",
+  "title": "PatchTST Technical Eval Backtest",
+  "code_file": "patchtst-eval-backtest.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "accelerator": "none",
+  "enable_internet": "true",
+  "dataset_sources": [
+    "kingz101/sp500-daily-raw",
+    "kingz101/patchtst-saved-model"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

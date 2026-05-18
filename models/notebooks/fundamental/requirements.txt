@@ -1,0 +1,20 @@
+# Fundamental pipeline — same stack as the technical pipeline.
+# See models/notebooks/technical/requirements.txt for notes on local vs Kaggle setup.
+
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+
+jupyter
+ipykernel
+
+transformers
+accelerate
+tensorboard
+huggingface-hub
+
+peft
+
+yfinance
