@@ -47,6 +47,12 @@ def main():
             "predicting Q1-2025). Default: latest year in the CSV."
         ),
     )
+    parser.add_argument(
+        "--context-length",
+        type=int,
+        default=12,
+        help="Model context length in quarters (must match training).",
+    )
     args = parser.parse_args()
 
     csv_path = Path(args.csv)
@@ -74,13 +80,15 @@ def main():
 
     fy = int(pred_df_bt["forecast_year"].iloc[0])
     cy = int(pred_df_bt["context_year"].iloc[0])
+    ctx = args.context_length
     print(
-        f"Backtest scope: Q4-{cy} fundamentals → Q1-{fy} "
-        f"({len(pred_df_bt):,} rows, 1 rebalance)\n"
+        f"Backtest: 1 rebalance for Q1-{fy} "
+        f"(model input = {ctx} quarters ending Q4-{cy}; "
+        f"{len(pred_df_bt):,} ticker-level predictions)\n"
     )
 
-    colors = {"equal": "tab:blue", "confidence": "tab:orange", "rank": "tab:green"}
-    fig, ax = plt.subplots(figsize=(13, 5))
+    bar_colors = {"equal": "tab:blue", "confidence": "tab:orange", "rank": "tab:green"}
+    fig, ax = plt.subplots(figsize=(9, 4.5))
     summaries = {}
 
     for w in args.weighting:
@@ -91,31 +99,28 @@ def main():
             weighting=w,
         )
         summaries[w] = fbt.summarize_results(res)
-        eq = res["quarterly_equity"]
-        ret = res["total_return_pct"]
-        eq.plot(
-            ax=ax,
-            color=colors.get(w, None),
-            linewidth=1.5,
-            marker="o",
-            markersize=4,
-            label=f"{w}  ({ret:+.1f}%)",
-        )
 
-    ax.axhline(
-        args.capital,
-        color="gray",
-        linestyle="--",
-        linewidth=0.8,
-        label=f"${args.capital:,.0f} baseline",
-    )
+    labels = list(summaries.keys())
+    returns = [summaries[w]["total_return_pct"] for w in labels]
+    ax.bar(labels, returns, color=[bar_colors[w] for w in labels])
+    ax.axhline(0, color="gray", linewidth=0.8)
+    ax.set_ylabel("Total Return (%)")
     ax.set_title(
-        f"Q1-{fy} Backtest (Q4-{cy} Fundamentals) — Top-{args.top_n} Up Picks"
+        f"Single-period backtest: Q1 {fy} return after Q4 {cy} earnings\n"
+        f"{ctx}-quarter model context (ends Q4 {cy}) · 1 rebalance · "
+        f"top-{args.top_n} predicted-up stocks",
+        fontsize=11,
     )
-    ax.set_xlabel("Decision Date")
-    ax.set_ylabel("Portfolio Value ($)")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    # fig.text(
+    #     0.5,
+    #     -0.06,
+    #     "Holdings from Q4-anchored windows; return = weighted forward_return "
+    #     "over ~63 days after 45-day filing lag.",
+    #     ha="center",
+    #     fontsize=9,
+    #     color="gray",
+    # )
+    ax.grid(True, axis="y", alpha=0.3)
     plt.tight_layout()
     plt.show()
 
