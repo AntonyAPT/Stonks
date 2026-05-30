@@ -7,17 +7,16 @@ __pycache__/
 .cursorrules
 
 # Dataset
-models/data_raw/historic_data_rows.csv
-models/data_raw/prune_quarterly_fundamentals.py
-models/data_raw/quarterly_fundamentals_rows.csv
-models/data_raw/quarterly_fundamentals.csv
-models/data_raw/qvxizxrjkkt9vjtx.csv
+models/data_raw/*.csv
+models/data_raw/*.py
 
 # Kaggle CLI output / model training artefacts
-models/notebook_best_models/fundamental/checkpoint
-models/notebook_best_models/fundamental/save_dir_fund
-models/notebook_best_models/technical/checkpoint
-models/notebook_best_models/technical/save_dir
+models/notebook_best_models/**/checkpoint
+models/notebook_best_models/**/save_dir_fund
+models/notebook_best_models/**/save_dir
+models/notebook_model_runs/**/checkpoint/
+models/notebook_model_runs/**/save_dir/
+models/notebook_model_runs/**/save_dir_fund/
 
 # Change to the name of your notebook if edited
 models/notebook/patchtst-new-branch-test-sector.log 
