@@ -110,6 +110,7 @@ export default function DashboardPage({
     <div className="min-h-screen bg-page text-foreground">
       {/* Search Bar */}
       <div className="px-8 pt-6 pb-4">
+        <div className="max-w-7xl mx-auto">
         <form onSubmit={handleSearch} className="max-w-2xl">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -122,6 +123,7 @@ export default function DashboardPage({
             />
           </div>
         </form>
+        </div>
       </div>
 
       {/* Main Content Area */}

@@ -25,7 +25,7 @@ export function UserMenu({ avatarUrl, username }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const { navigate } = useNavigation()
-  const { theme, toggleTheme } = useTheme()
+  const {toggleTheme } = useTheme()
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -40,7 +40,7 @@ export function UserMenu({ avatarUrl, username }: UserMenuProps) {
 
   const menuItems: MenuItem[] = [
     ...staticMenuItems,
-    { id: 'theme', label: theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode' },
+    // { id: 'theme', label: theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode' },
   ]
 
   const handleMenuClick = (id: NavigationTarget) => {
