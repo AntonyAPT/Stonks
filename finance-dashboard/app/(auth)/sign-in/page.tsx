@@ -10,7 +10,7 @@ export default function SignInPage() {
         AI-powered analysis of your finances
       </p>
       <p className="text-zinc-400 text-xs text-center max-w-xs mb-4">
-        Uncover trends, keep track of your spending, and get personalized insights from your financial data.
+        Uncover trends, keep track of your portfolio, and get personalized insights from your financial data.
       </p>
       <SignInButton />
       <p className="text-zinc-400 text-sm mt-4">
