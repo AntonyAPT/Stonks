@@ -27,6 +27,7 @@ export default function DashboardPage({
   const [allQuotes, setAllQuotes] = useState<Record<string, StockQuote>>({});
   const [recommendations, setRecommendations] = useState<ModelRecommendation[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(true);
+  const [visiblePredictionLimit, setVisiblePredictionLimit] = useState(4);
 
   // Compute net holdings (shares per ticker) from portfolio items
   const holdingsMap: Record<string, number> = {};
@@ -62,7 +63,7 @@ export default function DashboardPage({
   }, [watchlistItems, portfolioItems]);
 
   useEffect(() => {
-    fetch("/api/recommendations?forecast_day=1&limit=4")
+    fetch("/api/recommendations?forecast_day=5&direction=up&sort_by=prob_up&limit=10")
       .then((r) => r.json())
       .then((data: ModelRecommendation[] | { error?: string }) => {
         if (Array.isArray(data)) {
@@ -90,9 +91,10 @@ export default function DashboardPage({
   );
   const prevPortfolioValue = portfolioValue - todayPnl;
   const portfolioPctChange = prevPortfolioValue > 0 ? (todayPnl / prevPortfolioValue) * 100 : 0;
+  const visibleRecommendations = recommendations.slice(0, visiblePredictionLimit);
   const avgConfidence =
-    recommendations.length > 0
-      ? recommendations.reduce((sum, item) => sum + item.confidence, 0) / recommendations.length
+    visibleRecommendations.length > 0
+      ? visibleRecommendations.reduce((sum, item) => sum + item.probUp, 0) / visibleRecommendations.length
       : 0;
 
   // Price map passed to PortfolioPanel so it doesn't need to re-fetch
@@ -153,14 +155,14 @@ export default function DashboardPage({
             />
             <StatCard
               label="Active Predictions"
-              value={recommendationsLoading ? "—" : String(recommendations.length)}
+              value={recommendationsLoading ? "—" : String(visibleRecommendations.length)}
               change={recommendations[0]?.contextEnd ?? "—"}
               isPositive={true}
             />
             <StatCard
               label="Avg Confidence"
               value={avgConfidence > 0 ? `${Math.round(avgConfidence * 100)}%` : "—"}
-              change="Day 1"
+              change="5-day"
               isPositive={true}
             />
           </div>
@@ -172,7 +174,18 @@ export default function DashboardPage({
 
             {/* AI Predictions Panel */}
             <div className="glass rounded-2xl p-6">
-              <h2 className="text-xl font-semibold mb-6">AI Predictions</h2>
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <h2 className="text-xl font-semibold">Top 5-Day Up Predictions</h2>
+                <select
+                  aria-label="Prediction count"
+                  value={visiblePredictionLimit}
+                  onChange={(event) => setVisiblePredictionLimit(Number(event.target.value))}
+                  className="bg-slate-800/70 border border-slate-700/60 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                >
+                  <option value={4}>Top 4</option>
+                  <option value={10}>Top 10</option>
+                </select>
+              </div>
               <div className="space-y-4">
                 {recommendationsLoading ? (
                   <p className="text-slate-500 text-sm text-center py-6">
@@ -183,13 +196,13 @@ export default function DashboardPage({
                     No model predictions found
                   </p>
                 ) : (
-                  recommendations.map((item) => (
+                  visibleRecommendations.map((item) => (
                     <PredictionCard
                       key={`${item.ticker}-${item.forecastDay}`}
                       ticker={item.ticker}
                       prediction={item.recommendation}
-                      confidence={Math.round(item.confidence * 100)}
-                      detail={`Day ${item.forecastDay} • ${item.predictedDirection}`}
+                      confidence={Math.round(item.probUp * 100)}
+                      detail="5-day probability"
                       isPositive={item.recommendation !== "SELL"}
                     />
                   ))
@@ -204,7 +217,7 @@ export default function DashboardPage({
                 {recommendations.slice(0, 2).map((item) => (
                   <ActivityItem
                     key={`activity-${item.ticker}-${item.forecastDay}`}
-                    action={`${item.recommendation} prediction generated`}
+                    action={`5-day ${item.recommendation} prediction generated`}
                     ticker={item.ticker}
                     time={item.contextEnd}
                     type="prediction"
@@ -339,7 +352,7 @@ function PredictionCard({
             isPositive ? "text-positive" : "text-negative"
           }`}
         >
-          {detail}
+          {confidence}%
         </span>
       </div>
       <div className="flex items-center justify-between">
@@ -350,7 +363,7 @@ function PredictionCard({
         >
           {prediction}
         </span>
-        <span className="text-xs text-slate-400">{confidence}% confidence</span>
+        <span className="text-xs text-slate-400">{detail}</span>
       </div>
     </div>
   );
