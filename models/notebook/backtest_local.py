@@ -28,6 +28,8 @@ def main():
     )
     parser.add_argument("--capital", type=float, default=1000.0)
     parser.add_argument("--top_n", type=int, default=10)
+    parser.add_argument("--min_confidence", type=float, default=0.0,
+                        help="Minimum softmax confidence to enter a position (default: 0.5).")
     parser.add_argument(
         "--weighting",
         nargs="+",

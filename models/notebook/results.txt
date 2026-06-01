@@ -22,3 +22,25 @@ Result: Test accuracy 39.84% (up from 39.48%), macro_f1 0.3989 (up from 0.3956).
 
 Next step: Repush kernel with the eval fix to confirm reloaded model matches training result.
 
+Setting	Before	After
+GLOBAL_NUM_EPOCHS	25	10
+EARLY_STOPPING_PATIENCE	3	2
+Data range	2000–present (~25 yrs)	2015–present (~10 yrs)
+Est. runtime	12+ hours	~3–4 hours
+With data from 2015-01-01 to ~May 2025 (≈10.3 years, ≈2,600 trading days per ticker):
+
+Split	Fraction	Approx dates	Purpose
+Train	80%	Jan 2015 → ~Mar 2023	Model learns from this
+Val	10%	~Mar 2023 → ~Apr 2024	Early stopping / best epoch
+Test	10%	~Apr 2024 → May 2025	Backtest runs on this
+The split_by_fraction function in dataset_utils.py:219 sorts each ticker chronologically and takes the last 10% as test — no shuffling, no randomness. The model never sees test-period prices during training or validation.
+
+So yes — the 33% return is genuinely out-of-sample, on ~13 months of data the model has never touched (~April 2024 to May 2025). That's a meaningful result.
+
+One nuance: the test split includes a 128-day context overlap at the start (so the first test window has enough lookback), but that context is only read as input — the predictions and returns being evaluated are always for future dates the model didn't train on.
+
+
+
+Strategy options:
+"equal" (current), "confidence" (proportional to raw score), and "rank" (1st gets most, 10th gets least, based on position
+equal: 

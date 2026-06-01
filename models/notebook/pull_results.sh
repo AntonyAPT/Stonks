@@ -1,5 +1,8 @@
 #!/bin/bash
 set -euo pipefail
+# Add the project venv to PATH (works in Git Bash on Windows where source activate may not).
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+export PATH="$REPO_ROOT/.venv/Scripts:$PATH"
 
 KERNEL=${1:-"michaelfman/patchtst-new-branch-test-sector"} # matches 'id' in kernel-metadata.json
 

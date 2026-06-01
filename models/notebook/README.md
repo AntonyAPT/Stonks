@@ -347,3 +347,27 @@ lazy weights are concrete by the time any caller (Trainer, manual loops,
 When installing locally, pin the three PyTorch packages together to avoid ABI
 mismatches. See `requirements.txt` for notes. On Kaggle this is not an issue —
 the preinstalled stack is already consistent.
+
+
+### running different strategies in local
+This run (version 12) — ~3–4 hours, one-time:
+
+Trains the model, runs all 3 weighting comparisons, saves pred_df_test.csv
+After it finishes — pull everything:
+
+
+bash models/notebook/pull_results.sh
+This downloads the checkpoint AND pred_df_test.csv to models/notebook/save_dir/.
+
+Every future experiment — seconds, no model, no Kaggle:
+
+
+# Compare all three weightings
+python models/notebook/backtest_local.py
+
+# Try top 5 instead of 10
+python models/notebook/backtest_local.py --top_n 5
+
+# Test just one scheme
+python models/notebook/backtest_local.py --weighting confidence
+The local script loads pred_df_test.csv, runs the backtest in pure pandas, and shows a combined equity curve with the return for each scheme. No GPU, no internet, takes under a second.

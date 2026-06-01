@@ -196,7 +196,11 @@ def compute_direction_accuracy(df: pd.DataFrame) -> dict:
 # 3. Confidence ranking — select top-N predicted-up stocks per day
 # ---------------------------------------------------------------------------
 
-def select_top_confident_up(df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+def select_top_confident_up(
+    df: pd.DataFrame,
+    top_n: int = 10,
+    min_confidence: float = 0.0,
+) -> pd.DataFrame:
     """Return the top-N predicted-up stocks ranked by confidence (descending).
 
     This function is meant to be called on a *single trading day's* predictions
@@ -206,6 +210,7 @@ def select_top_confident_up(df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
 
     Selection rules:
     - Keep only rows where ``predicted_direction == "up"``
+    - Drop rows whose ``confidence`` is below ``min_confidence``
     - Rank by ``confidence`` descending
     - Return at most ``top_n`` rows (fewer if not enough qualify)
 
@@ -215,12 +220,18 @@ def select_top_confident_up(df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
         One trading day's prediction DataFrame.
     top_n:
         Maximum number of stocks to select.
+    min_confidence:
+        Minimum softmax probability required to enter a position.  Defaults
+        to 0.5 — below this the model assigns more probability mass to
+        down+flat combined than to up, making the signal unreliable.
 
     Returns
     -------
     pd.DataFrame — subset of ``df``, sorted by confidence descending.
     """
-    up_preds = df[df["predicted_direction"] == "up"].copy()
+    up_preds = df[
+        (df["predicted_direction"] == "up") & (df["confidence"] >= min_confidence)
+    ].copy()
     return up_preds.nlargest(top_n, "confidence", keep="first")
 
 
@@ -267,6 +278,7 @@ def run_backtest(
     starting_capital: float = 1000.0,
     top_n: int = 10,
     weighting: str = "equal",
+    min_confidence: float = 0.5,
     benchmark_prices: Optional[pd.Series] = None,
 ) -> dict:
     """Simulate a daily paper-trade strategy on the prediction DataFrame.
@@ -308,6 +320,10 @@ def run_backtest(
                              The highest-confidence stock gets the largest slice.
         - ``"rank"``       — linear taper by rank: #1 gets the most, #10 the
                              least, using only ordering (not raw scores).
+    min_confidence:
+        Minimum softmax probability for the "up" class required to trade a
+        stock.  Stocks ranked in the top ``top_n`` but below this threshold
+        are skipped; capital sits in cash for those slots.  Defaults to 0.5.
     benchmark_prices:
         Optional pd.Series indexed by date with a benchmark price (e.g., SPY
         daily closes).  If supplied, benchmark returns are computed over the
@@ -339,7 +355,7 @@ def run_backtest(
     # Iterate in chronological order — no future data can leak in.
     for trade_date in sorted(df["trade_date"].unique()):
         day_preds = df[df["trade_date"] == trade_date]
-        selected = select_top_confident_up(day_preds, top_n)
+        selected = select_top_confident_up(day_preds, top_n, min_confidence)
         n_positions = len(selected)
         positions_per_day.append(n_positions)
 
@@ -399,6 +415,7 @@ def run_backtest(
         "avg_positions": float(np.mean(positions_per_day)) if positions_per_day else 0.0,
         "avg_forward_return_selected": avg_forward_return_selected,
         "weighting": weighting,
+        "min_confidence": min_confidence,
         "direction_accuracy_all": acc_all,
         "direction_accuracy_selected": acc_selected,
         "benchmark_return_pct": benchmark_return_pct,
@@ -441,6 +458,7 @@ def summarize_results(backtest_results: dict) -> dict:
         "  BACKTEST RESULTS",
         "=" * 54,
         f"  {'Weighting scheme':<36} {r['weighting']:>10}",
+        f"  {'Min confidence threshold':<36} {r['min_confidence']:>10.0%}",
         f"  {'Starting Capital':<36} ${1000.0:>10,.2f}",
         f"  {'Final Portfolio Value':<36} ${r['final_value']:>10,.2f}",
         f"  {'Total Return':<36} {r['total_return_pct']:>+10.2f}%",
@@ -478,6 +496,7 @@ def summarize_results(backtest_results: dict) -> dict:
     summary = {
         "starting_capital": 1000.0,
         "weighting": r["weighting"],
+        "min_confidence": r["min_confidence"],
         "final_value": r["final_value"],
         "total_return_pct": r["total_return_pct"],
         "max_drawdown_pct": max_drawdown_pct,
