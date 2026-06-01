@@ -189,7 +189,7 @@ export default function DashboardPage({
                       ticker={item.ticker}
                       prediction={item.recommendation}
                       confidence={Math.round(item.probUp * 100)}
-                      detail="5-day probability"
+                      detail="5-day gain probability"
                       isPositive={item.recommendation !== "SELL"}
                     />
                   ))
