@@ -175,7 +175,7 @@ export default function DashboardPage({
             {/* AI Predictions Panel */}
             <div className="glass rounded-2xl p-6">
               <div className="flex items-center justify-between gap-3 mb-6">
-                <h2 className="text-xl font-semibold">Top 5-Day Up Predictions</h2>
+                <h2 className="text-xl font-semibold">Top 5-Day Gainers Forecast</h2>
                 <select
                   aria-label="Prediction count"
                   value={visiblePredictionLimit}
