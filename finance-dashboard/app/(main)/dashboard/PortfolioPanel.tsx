@@ -166,14 +166,14 @@ function CompositionTab({
 }) {
   if (pieData.length === 0) {
     return (
-      <div className="h-80 flex items-center justify-center text-slate-500 text-sm">
+      <div className="h-100 flex items-center justify-center text-slate-500 text-sm">
         No holdings to display
       </div>
     );
   }
 
   return (
-    <div className="h-80 flex items-center gap-6">
+    <div className="h-100 flex items-center gap-6">
       <div className="w-[55%] h-full pointer-events-none">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -246,7 +246,7 @@ function OverviewTab({
   const color = isPositive ? "#34d399" : "#f87171";
 
   return (
-    <div className="h-80">
+    <div className="h-100 flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={growthData}
