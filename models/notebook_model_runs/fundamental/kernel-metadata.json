@@ -7,7 +7,10 @@
   "is_private": "true",
   "accelerator": "NvidiaTeslaT4",
   "enable_internet": "true",
-  "dataset_sources": ["kingz101/sp500-daily-raw", "kingz101/sp500-quarterly-fundamental"],
+  "dataset_sources": [
+    "kingz101/sp500-daily-raw",
+    "kingz101/sp500-quarterly-fundamental"
+  ],
   "competition_sources": [],
   "kernel_sources": []
 }
