@@ -1,61 +1,41 @@
 # STONKS - Internal Documentation
 
-This document is the onboarding reference for the STONKS senior project. It
-explains how the code is organized and how the pieces work together, so that a
-new contributor can get oriented quickly.
+This document is the onboarding reference for the STONKS senior project. It explains how the code is organized and how the pieces work together, so that a new contributor can get oriented quickly.
 
-It is split into two main parts, mirroring the project's documentation outline:
+It is split into two main parts:
 
 1. Project Structure - an annotated map of every meaningful file.
 2. File Interactions - how those files work together and what features result.
 
-A few supporting sections (overview, end-to-end data flow, environment
-variables, quick reference, and known gaps) are added at the end to round out
-the onboarding experience.
+A few supporting sections (overview, end-to-end data flow, environment variables, quick reference, and known gaps) have also been added. 
 
 ---
 
 ## 0. Overview and Tech Stack
 
-STONKS is a minimalist finance dashboard for individual investors. Users sign
-in with Google, build and track multiple stock portfolios, maintain watchlists,
-view interactive price and fundamentals charts, and see daily machine-learning
-stock recommendations.
+STONKS is a minimalist finance dashboard for individual investors. Users sign in with Google, build and track multiple stock portfolios, maintain watchlists, view interactive price and fundamentals charts, and see daily machine-learning stock recommendations.
 
-The project has three runtime pieces that all share a single Supabase
-(PostgreSQL + Auth) backend:
+The project has three runtime pieces that all share a single Supabase (PostgreSQL + Auth) backend:
 
-- Finance Dashboard - a Next.js 16 (App Router) web app the user interacts
-  with. It reads and writes user data in Supabase and pulls live prices and
-  search results from external market data APIs (Finnhub, Yahoo Finance, and
-  embedded TradingView widgets).
-- Model Training - a PatchTST time-series transformer pipeline (Python) that
-  trains on Kaggle GPUs, runs local/automated inference, and publishes
-  BUY / HOLD / SELL recommendations into Supabase.
-- Automation - a GitHub Actions workflow that, on a schedule, refreshes market
-  data and republishes the technical recommendations so the dashboard always
-  shows fresh predictions.
+- Finance Dashboard - a Next.js 16 (App Router) web app the user interacts with. It reads and writes user data in Supabase and pulls live prices and search results from external market data APIs (Finnhub, Yahoo Finance, and embedded TradingView widgets).
+- Model Training - a PatchTST time-series transformer pipeline (Python) that trains on Kaggle GPUs, runs local/automated inference, and publishes BUY / HOLD / SELL recommendations into Supabase.
+- Automation - a GitHub Actions workflow that, on a schedule, refreshes market data and republishes the technical recommendations so the dashboard always shows fresh predictions.
 
 Tech stack at a glance:
 
 - Frontend: Next.js 16, React 18, TypeScript, Tailwind CSS v4, CSS Modules,
-  Recharts, TradingView widgets, Sonner (toasts).
+Recharts, TradingView widgets, Sonner (toasts).
 - Backend / data: Supabase (PostgreSQL, Auth, Row Level Security).
 - ML: PyTorch, HuggingFace Transformers (PatchTST), pandas, scikit-learn.
 - Data sources: Finnhub (search, quotes), Yahoo Finance (history), yfinance
-  (training data ingestion).
+(training data ingestion).
 - CI / automation: GitHub Actions; Kaggle kernels for GPU training.
 
 ---
 
 ## 1. Project Structure
 
-The trees below use plain ASCII. Every meaningful source file gets a
-one-sentence description. Boilerplate (CSS Modules, barrel `index.ts` files,
-generated type files, and standard config files) is collapsed into grouped
-notes to keep the map readable. Build artifacts (`node_modules/`, `.next/`,
-`__pycache__/`, `.venv/`) and large data/model binaries are omitted or noted at
-the directory level only.
+Every meaningful source file gets a one-sentence description. Boilerplate (CSS Modules, barrel `index.ts` files, generated type files, and standard config files) is collapsed into grouped notes to keep the map readable. Build artifacts (`node_modules/`, `.next/`,`__pycache__/`, `.venv/`) and large data/model binaries are omitted or noted at the directory level only.
 
 ### 1a. Finance Dashboard (`finance-dashboard/`)
 
@@ -64,7 +44,7 @@ finance-dashboard/
 |
 +-- proxy.ts                         Next.js 16 request proxy (auth gate) that delegates session refresh and route protection.
 +-- next.config.ts                   Next.js config allowing Google OAuth avatar images.
-+-- package.json                     Declares dependencies and scripts (includes "update-db-types" for Supabase codegen).
++-- package.json                     Declares dependencies and developer scripts.
 +-- (other root config)             tsconfig.json, eslint.config.mjs, postcss.config.mjs, next-env.d.ts - standard tooling config.
 |
 +-- app/
@@ -146,7 +126,7 @@ finance-dashboard/
 |       +-- index.ts                 Barrel re-exporting the clients and updateSession.
 |
 +-- types/                          Generated and app-level TypeScript types.
-|   +-- supabase.ts                  Auto-generated Supabase Database types (includes app, ML, and quarterly tables).
+|   +-- supabase.ts                  Auto-generated Supabase Database types.
 |   +-- model-recommendations.ts     App-level interfaces for technical and fundamental recommendation rows.
 |   +-- quarterly.ts                 Interface for a quarterly_fundamentals row.
 |
@@ -156,19 +136,19 @@ finance-dashboard/
 Grouped notes:
 
 - CSS Modules (`*.module.css`): each interactive component has a co-located
-  scoped stylesheet for color, layout, and animation. They are not listed
-  individually.
+scoped stylesheet for color, layout, and animation. They are not listed
+individually.
 - Barrel files (`index.ts`): re-export a folder's public components/hooks for
-  cleaner imports.
+cleaner imports.
 - `app/(main)/portfolio/components/`: contains `PortfolioInsights.tsx` (tab
-  container), `PerformanceChart.tsx`, `CompositionChart.tsx`,
-  `PortfolioSwitcher.tsx`, `TransactionLedger.tsx`,
-  `PortfolioTransactionLedger.tsx`, and `QuickTradeModal.tsx` (each with a
-  matching CSS Module).
+container), `PerformanceChart.tsx`, `CompositionChart.tsx`,
+`PortfolioSwitcher.tsx`, `TransactionLedger.tsx`,
+`PortfolioTransactionLedger.tsx`, and `QuickTradeModal.tsx` (each with a
+matching CSS Module).
 - `components/stocks/charts/`: contains `QuarterlyChartsPanel.tsx` (tab
-  container), `QuarterlyChartCard.tsx` (wrapper), `RevenueChart.tsx`,
-  `NetIncomeChart.tsx`, `EpsChart.tsx`, `BalanceSheetChart.tsx`, and a
-  `shared.ts` of formatting helpers.
+container), `QuarterlyChartCard.tsx` (wrapper), `RevenueChart.tsx`,
+`NetIncomeChart.tsx`, `EpsChart.tsx`, `BalanceSheetChart.tsx`, and a
+`shared.ts` of formatting helpers.
 
 ### 1b. Model Training (`models/` and `historic-data/`)
 
@@ -199,9 +179,9 @@ models/
 |   |   +-- backtest.py              Daily paper-trading backtest selecting top-N confident "up" picks (plus __init__.py).
 |   +-- fundamental/
 |       +-- config.py                Factory for a compact PatchTSTConfig tuned for 12-quarter fundamental windows.
-|       +-- features.py              Engineers normalized quarterly ratio/growth features with winsorization and z-scoring.
+|       +-- features.py              Normalized quarterly ratio/growth features with winsorization and z-scoring.
 |       +-- dataset.py               Builds the quarterly dataset with publish-lag and forecast-lag to avoid lookahead bias.
-|       +-- backtest.py              Quarterly paper-trading backtest with Sharpe/turnover metrics (plus __init__.py).
+|       +-- backtest.py              Quarterly paper-trading backtest (plus __init__.py).
 |
 +-- notebook_model_runs/             Active Kaggle training sandboxes (one per pipeline).
 |   +-- technical/
@@ -232,11 +212,11 @@ models/
 Grouped notes:
 
 - `checkpoint/`, `save_dir/`, `save_dir_fund/`, and `.venv/` hold training
-  artifacts and environments; they are gitignored or noted at the directory
-  level rather than enumerated.
+artifacts and environments; they are gitignored or noted at the directory
+level rather than enumerated.
 - Both pipelines deliberately share `patchtst_lib/` so the notebooks, inference,
-  and backtest scripts never duplicate feature, labeling, model, or metric
-  logic.
+and backtest scripts never duplicate feature, labeling, model, or metric
+logic.
 
 ### 1c. Docs (`docs/`)
 
@@ -252,9 +232,6 @@ docs/
 
 ### 1d. GitHub Actions (`.github/workflows/`)
 
-Listed here for completeness so the component inventory is whole, even though
-the original outline only references it under File Interactions.
-
 ```
 .github/workflows/
 +-- daily-model-recommendations.yml  Scheduled workflow that refreshes market data and republishes technical recommendations to Supabase.
@@ -264,125 +241,111 @@ the original outline only references it under File Interactions.
 
 ## 2. File Interactions
 
-This section describes how the files above work together, why, and what
-user-facing or operational feature each interaction creates.
+This section describes how the files above work together, why, and what user-facing or operational feature each interaction creates.
 
 ### 2a. Finance Dashboard
 
-Authentication and route protection. On nearly every request, the root
-`proxy.ts` calls `lib/supabase/proxy.ts` to refresh the Supabase session
-cookies and enforce routing rules (unauthenticated users are sent to
-`/sign-in`; signed-in users are kept out of `/` and `/sign-in`). Sign-in itself
-starts in `(auth)/sign-in/SignInButton.tsx` (Google OAuth via the browser
-client), and `(auth)/auth/callback/route.ts` completes the exchange, creates a
-`profiles` row if one does not exist, and redirects to `/dashboard`. The
-`(main)/layout.tsx` acts as a second gate.
-Feature: secure, persistent Google sign-in with protected app routes and
-automatic profile creation.
+---
 
-Read path (server pages). Each authenticated page follows a server-fetch then
-client-render pattern. A `page.tsx` (server component) creates a Supabase server
-client via `lib/supabase/server.ts`, loads the user's data (portfolios,
-holdings, watchlist, quarterly fundamentals), and passes it as props to a client
-component (for example `DashboardPage.tsx`, `WatchlistPage.tsx`, or
-`portfolio/[id]/page.tsx`).
+Authentication and route protection:
+
+On nearly every request, the root `proxy.ts` calls `lib/supabase/proxy.ts` to refresh the Supabase session cookies and enforce routing rules (unauthenticated users are sent to `/sign-in`; signed-in users are kept out of `/` and `/sign-in`). Sign-in itself starts in `(auth)/sign-in/SignInButton.tsx` (Google OAuth via the browser client), and `(auth)/auth/callback/route.ts` completes the exchange, creates a `profiles` row if one does not exist, and redirects to `/dashboard`. The
+`(main)/layout.tsx` acts as a second gate.
+
+Feature:  secure, persistent Google sign-in with protected app routes and automatic profile creation.
+
+---
+
+Read path (server pages):
+
+Each authenticated page follows a server-fetch then client-render pattern. A `page.tsx` (server component) creates a Supabase server client via `lib/supabase/server.ts`, loads the user's data (portfolios, holdings, watchlist, quarterly fundamentals), and passes it as props to a client component (for example `DashboardPage.tsx`, `WatchlistPage.tsx`, or`portfolio/[id]/page.tsx`).
+
 Feature: fast first paint with server-rendered, authorized data.
 
-Write path (server actions). All mutations go through server actions rather than
-client-side database calls. `(main)/actions/portfolio.ts` handles portfolio
-CRUD and buy/sell trades (pricing trades via Finnhub and computing historical
-performance with Yahoo Finance), and `watchlist/actions.ts` handles watchlist
-changes. After writing, actions call `revalidatePath` so the server-rendered
-pages refresh.
-Feature: multi-portfolio management and trading, plus watchlist editing, with
-the UI staying in sync.
+---
 
-Live data via API route handlers. Client components that need fresh data on
-demand call internal endpoints under `app/api/`. `stocksearch/route.ts` and
-`stockquote/route.ts` proxy Finnhub (keeping the API key server-side), while
-`recommendations/route.ts` and `fundamental-recommendations/route.ts` read the
-latest rows from the Supabase `model_recommendations` and
-`fundamental_recommendations` tables. `DashboardPage.tsx` consumes both
-recommendation endpoints and lets the user toggle between Technical and
-Fundamental views.
+Write path (server actions):
+
+All mutations go through server actions rather than client-side database calls. `(main)/actions/portfolio.ts` handles portfolio CRUD and buy/sell trades (pricing trades via Finnhub and computing historical performance with Yahoo Finance), and `watchlist/actions.ts` handles watchlist changes. After writing, actions call `revalidatePath` so the server-rendered
+pages refresh.
+
+Feature: multi-portfolio management and trading, plus watchlist editing, with the UI staying in sync.
+
+---
+
+Live data via API route handlers:
+
+Client components that need fresh data on demand call internal endpoints under `app/api/`. `stocksearch/route.ts` and
+`stockquote/route.ts` proxy Finnhub (keeping the API key server-side), while `recommendations/route.ts` and `fundamental-recommendations/route.ts` read the latest rows from the Supabase `model_recommendations` and `fundamental_recommendations` tables. `DashboardPage.tsx` consumes both recommendation endpoints and lets the user toggle between Technical and Fundamental views. 
+
 Feature: global stock search, live quotes, and the AI prediction panels.
 
-Embedded market visuals. The `components/tradingview/` components render
-TradingView widgets for charts, heatmaps, company profiles, and fundamentals,
-configured by `widget-configs.ts`.
-Feature: rich market overview and stock detail visuals without building charts
-from scratch.
+---
 
-Cross-cutting state. `SelectedPortfolioContext` remembers which portfolio the
-user last viewed (persisted in localStorage) and is used by the navbar's
-portfolio link, `BuyAndWatchlist.tsx`, and `PortfolioSwitcher.tsx`.
-`ThemeContext` tracks dark/light mode.
-Feature: consistent "current portfolio" behavior across the app and a
-themeable UI.
+Embedded market visuals: 
+
+The `components/tradingview/` components render TradingView widgets for charts, heatmaps, company profiles, and fundamentals, configured by `widget-configs.ts`.
+
+Feature: rich market overview and stock detail visuals without building charts from scratch.
+
+---
+
+Cross-cutting state:
+
+`SelectedPortfolioContext` remembers which portfolio the user last viewed (persisted in localStorage) and is used by the navbar's portfolio link, `BuyAndWatchlist.tsx`, and `PortfolioSwitcher.tsx`. `ThemeContext` tracks dark/light mode.  
+
+Feature: consistent "current portfolio" behavior across the app and a themeable UI.
+
+---
 
 ### 2b. Model Training
 
-Data acquisition. `historic-data/data.py` and `initial_load.py` perform the
-one-time bulk load of S&P 500 daily OHLCV into the Supabase `historic_data`
-table. Thereafter, `update_data.py` queries the latest stored date and upserts
-only new business days from yfinance (on the `(date, ticker)` key).
-Feature: a continuously maintained market-data store that both training
-snapshots and live inference read from.
+---
 
-Training on Kaggle. The notebooks in `notebook_model_runs/technical/` and
-`.../fundamental/` import `patchtst_lib/` for everything substantive: feature
-engineering and scaling (`features.py`), windowed datasets (`dataset.py`), label
-construction (`labeling.py`), the model itself (`classification_head.py`), and
-evaluation metrics (`training.py`). The technical pipeline uses a 128-day
-context to predict each of the next 5 trading days; the fundamental pipeline
-uses 12 quarters of normalized Compustat features with publish/forecast lags to
-predict the next quarter's direction. Each run writes checkpoints and a
-`save_dir` of weights, config, and metadata.
-Feature: reproducible GPU training for both a technical (price) and a
-fundamental (financials) recommender, sharing one tested code library.
+Data acquisition:
 
-Artifact promotion. After a run, `pull_results.sh` downloads the Kaggle outputs
-locally; the best run is then copied into `notebook_best_models/` and committed
-to git, which is what makes a specific model "production."
-Feature: a clear, version-controlled "current best model" that automation can
-rely on.
+`historic-data/data.py` and `initial_load.py` perform the one-time bulk load of S&P 500 daily OHLCV into the Supabase `historic_data` table. Thereafter, `update_data.py` queries the latest stored date and upserts only new business days from yfinance (on the `(date, ticker)` key).
 
-Inference and publishing. `notebook_best_models/technical/local_inference.py`
-loads the committed weights, `config.json`, and `training_metadata.json`, fetches
-recent OHLCV from Supabase, reproduces the training-time scaling, attaches
-industry IDs from `ticker_industry.json`, runs the forward pass, and maps the
-output classes to SELL / HOLD / BUY for forecast days 1 to 5. With
-`--write-supabase` it upserts into `model_recommendations` (key
-`(ticker, context_end, forecast_day)`). On the fundamental side,
-`upload_recommendations.py` pushes the latest-quarter predictions into
-`fundamental_recommendations`.
-Feature: the daily technical picks and the quarterly fundamental picks that the
-dashboard displays.
+Feature: a continuously maintained market-data store that both training snapshots and live inference read from.
+
+---
+
+Training on Kaggle: 
+
+The notebooks in `notebook_model_runs/technical/` and `.../fundamental/` import `patchtst_lib/` for everything substantive: feature engineering and scaling (`features.py`), windowed datasets (`dataset.py`), label construction (`labeling.py`), the model itself (`classification_head.py`), and evaluation metrics (`training.py`). The technical pipeline uses a 128-day context to predict each of the next 5 trading days; the fundamental pipeline uses 12 quarters of normalized Compustat features with publish/forecast lags to predict the next quarter's direction. Each run writes checkpoints and a `save_dir` of weights, config, and metadata.
+
+Feature: reproducible GPU training for both a technical (price) and a fundamental (financials) recommender, sharing one code library.
+
+---
+
+Artifact promotion: 
+
+After a run, `pull_results.sh` downloads the Kaggle outputs locally; the best run is then copied into `notebook_best_models/` and committed to git, which is what makes a specific model "production." 
+
+Feature: a clear, version-controlled "current best model" that automation can rely on.
+
+---
+
+Inference and publishing: 
+
+`notebook_best_models/technical/local_inference.py` loads the committed weights, `config.json`, and `training_metadata.json`, fetches recent OHLCV from Supabase, reproduces the training-time scaling, attaches industry IDs from `ticker_industry.json`, runs the forward pass, and maps the output classes to SELL / HOLD / BUY for forecast days 1 to 5. With `--write-supabase` it upserts into `model_recommendations` (key`(ticker, context_end, forecast_day)`). On the fundamental side, `upload_recommendations.py` pushes the latest-quarter predictions into `fundamental_recommendations`.
+
+Feature: the daily technical picks and the quarterly fundamental picks that the dashboard displays.
+
+---
 
 ### 2c. Docs
 
-The two SQL files are one-time bootstrap scripts that must be run in the
-Supabase SQL editor before the model pipeline can publish. `model_recommendations.sql`
-must exist before `local_inference.py --write-supabase` (and the GitHub Actions
-job) can upsert technical predictions, and `fundamental_recommendations.sql`
-must exist before `upload_recommendations.py` can upload fundamental
-predictions. Both scripts also enable Row Level Security with a public
-read-only policy, which is what lets the dashboard's API routes read the tables
-with the anon key while writes still require the service role key.
-Feature: the database tables and access rules that connect model output to the
-dashboard. (Full Supabase architecture is documented separately.)
+The two SQL files are one-time bootstrap scripts that must be run in the Supabase SQL editor before the model pipeline can publish. `model_recommendations.sql` must exist before `local_inference.py --write-supabase` (and the GitHub Actions job) can upsert technical predictions, and `fundamental_recommendations.sql` must exist before `upload_recommendations.py` can upload fundamental predictions. Both scripts also enable Row Level Security with a public read-only policy, which is what lets the dashboard's API routes read the tables with the anon key while writes still require the service role key. 
+
+Feature: the database tables and access rules that connect model output to the dashboard. (Full Supabase architecture is documented separately.)
+
+---
 
 ### 2d. GitHub Actions / Workflow
 
-`daily-model-recommendations.yml` ties data acquisition, inference, and Supabase
-together on a schedule (08:00 UTC, Tuesday to Saturday, after the prior US
-market day settles) and on manual dispatch. Each run: validates that the
-committed model artifacts exist, runs `historic-data/update_data.py --no-csv` to
-refresh Supabase market data, runs
-`local_inference.py --sp500-tickers --write-supabase --device cpu` to regenerate
-and publish technical recommendations, and uploads the resulting CSV as a build
-artifact. It reads its Supabase URL and service-role key from repository
-secrets.
+`daily-model-recommendations.yml` ties data acquisition, inference, and Supabase together on a schedule (08:00 UTC, Tuesday to Saturday, after the prior US market day settles) and on manual dispatch. Each run: validates that the committed model artifacts exist, runs `historic-data/update_data.py --no-csv` to refresh Supabase market data, runs `local_inference.py --sp500 tickers --write-supabase --device cpu` to regenerate and publish technical recommendations, and uploads the resulting CSV as a build artifact. It reads its Supabase URL and service-role key from repository secrets. 
+
 Feature: hands-off daily refresh so the dashboard's technical predictions stay
 current without anyone running scripts manually.
 
@@ -398,30 +361,30 @@ current without anyone running scripts manually.
                      |                |        historic-data/update_data.py
                      |                |                  |
                      |                |                  v
-                     |                |        +---------------------------+
-                     |                |        |   Supabase (PostgreSQL)   |
-                     |                |        |                           |
-                     |                |        |  historic_data            |
-                     |                |        |  model_recommendations    |
-                     |                |        |  fundamental_recommendations
-                     |                |        |  profiles / portfolios /  |
-                     |                |        |  watchlists / stocks /    |
-                     |                |        |  quarterly_fundamentals   |
-                     |                |        +---------------------------+
-                     |                |             ^            |
-   GitHub Actions    |                |   write     |            |  read
-   (daily cron) -----+----------------+--> local_inference.py    |
-                                          upload_recommendations.py
-                                                                  |
-                                                                  v
+                     |                |        +------------------------------+
+                     |                |        |   Supabase (PostgreSQL)      |
+                     |                |        |                              |
+                     |                |        |  historic_data               |
+                     |                |        |  model_recommendations       |
+                     |                |        |  fundamental_recommendations |
+                     |                |        |  profiles / portfolios /     |
+                     |                |        |  watchlists / stocks /       |
+                     |                |        |  quarterly_fundamentals      |
+                     |                |        +------------------------------+
+                     |                |               ^             |
+   GitHub Actions    v                v   (write)     |             |  (read)
+   (daily cron) -----+----------------+--> local_inference.py       |
+                                       upload_recommendations.py    |
+                                                                    |
+                                                                    v
                                           +---------------------------------+
                                           |  Finance Dashboard (Next.js)    |
    live quotes / search  -------------->  |  server pages + server actions  |
    (Finnhub, Yahoo)                       |  + /api route handlers          |
                                           +---------------------------------+
-                                                                  |
-                                                                  v
-                                                            [ User browser ]
+                                                                    |
+                                                                    v
+                                                             [ User browser ]
 ```
 
 Narrative: the model pipeline and the dashboard never talk to each other
@@ -439,46 +402,42 @@ Secret values are never committed. The dashboard reads from
 `finance-dashboard/.env.local` (gitignored); the automation reads from GitHub
 repository secrets. Only variable names are listed here.
 
-| Variable | Used by | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Dashboard (client + server) | Supabase project URL. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Dashboard (client + server) | Public anon key for RLS-protected reads/writes. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Dashboard (server only), Model pipeline, Actions | Privileged key for service-role reads/writes (for example quarterly fundamentals and recommendation upserts). |
-| `SUPABASE_URL` | Model pipeline, Actions | Supabase project URL for Python scripts. |
-| `SUPABASE_RECOMMENDATIONS_KEY` | Model pipeline | Write-capable key used by `local_inference.py --write-supabase` (set to the service role key). |
-| `FINNHUB_API_KEY` | Dashboard (server) | Stock search, quotes, and trade pricing. |
-| `KAGGLE_USERNAME`, `KAGGLE_KEY` | Training workflow / Kaggle CLI | Authenticate Kaggle dataset and kernel commands. |
+
+| Variable                        | Used by                                          | Purpose                                                                                                       |
+| ------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Dashboard (client + server)                      | Supabase project URL.                                                                                         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Dashboard (client + server)                      | Public anon key for RLS-protected reads/writes.                                                               |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Dashboard (server only), Model pipeline, Actions | Privileged key for service-role reads/writes (for example quarterly fundamentals and recommendation upserts). |
+| `SUPABASE_URL`                  | Model pipeline, Actions                          | Supabase project URL for Python scripts.                                                                      |
+| `SUPABASE_RECOMMENDATIONS_KEY`  | Model pipeline                                   | Write-capable key used by `local_inference.py --write-supabase` (set to the service role key).                |
+| `FINNHUB_API_KEY`               | Dashboard (server)                               | Stock search, quotes, and trade pricing.                                                                      |
+| `KAGGLE_USERNAME`, `KAGGLE_KEY` | Training workflow / Kaggle CLI                   | Authenticate Kaggle dataset and kernel commands.                                                              |
+
 
 ---
 
 ## 5. Where to Start (Quick Reference)
 
-| If you need to... | Start here |
-| --- | --- |
-| Add a protected page | `finance-dashboard/app/(main)/` and check `publicRoutes` in `lib/supabase/proxy.ts`. |
-| Read user data on load | A server `page.tsx` using `createClient()` from `lib/supabase/server.ts`. |
-| Mutate the database | A server action in `app/(main)/actions/` or `app/(main)/watchlist/actions.ts`. |
-| Add a client-callable endpoint | `app/api/<name>/route.ts`. |
-| Regenerate Supabase types | `npm run update-db-types` (updates `types/supabase.ts`). |
-| Refresh market data | `historic-data/update_data.py`. |
-| Train a model | `models/notebook_model_runs/<pipeline>/` plus `models/README.md`. |
-| Run production inference | `models/notebook_best_models/technical/local_inference.py`. |
-| Understand the model code | `models/patchtst_lib/`. |
-| Upload fundamental picks | `models/notebook_model_runs/fundamental/upload_recommendations.py`. |
-| Change the daily automation | `.github/workflows/daily-model-recommendations.yml`. |
+
+| If you need to...              | Start here                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| Add a protected page           | `finance-dashboard/app/(main)/` and check `publicRoutes` in `lib/supabase/proxy.ts`. |
+| Read user data on load         | A server `page.tsx` using `createClient()` from `lib/supabase/server.ts`.            |
+| Mutate the database            | A server action in `app/(main)/actions/` or `app/(main)/watchlist/actions.ts`.       |
+| Add a client-callable endpoint | `app/api/<name>/route.ts`.                                                           |
+| Regenerate Supabase types      | `npm run update-db-types` (updates `types/supabase.ts`).                             |
+| Refresh market data            | `historic-data/update_data.py`.                                                      |
+| Train a model                  | `models/notebook_model_runs/<pipeline>/` plus `models/README.md`.                    |
+| Run production inference       | `models/notebook_best_models/technical/local_inference.py`.                          |
+| Understand the model code      | `models/patchtst_lib/`.                                                              |
+| Upload fundamental picks       | `models/notebook_model_runs/fundamental/upload_recommendations.py`.                  |
+| Change the daily automation    | `.github/workflows/daily-model-recommendations.yml`.                                 |
+
 
 ---
 
 ## 6. Known Gaps and Notes
 
-- The user menu links to a `/settings` route that does not yet have a route
-  file.
-- `models/README.md` documents running `model_recommendations.sql` as a setup
-  step but does not mention `fundamental_recommendations.sql`; that table must
-  also be created before `upload_recommendations.py` will work.
-- `types/supabase.ts` is current and includes the ML and quarterly tables
-  (`model_recommendations`, `fundamental_recommendations`,
-  `quarterly_fundamentals`, `historic_data`) alongside the core app tables.
-- The fundamental recommendation upload is currently a manual step
-  (`upload_recommendations.py`); only the technical recommendations are
-  refreshed automatically by GitHub Actions.
+- Uninitialized page routes (i.e. `/settings`) may be found and are part of future work.
+- The fundamental recommendation upload is currently a manual step (`upload_recommendations.py`); only the technical recommendations are refreshed automatically by GitHub Actions.
+

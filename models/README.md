@@ -278,14 +278,14 @@ provide or build the ticker-to-industry map.
 
 To store the generated rows for the website:
 
-1. Run `docs/model_recommendations.sql` once in the Supabase SQL editor.
+1. Run `docs/model_recommendations.sql` and `docs/fundamental_recommendations.sql` once in the Supabase SQL editor.
 2. Set a write-capable key locally, preferably the Supabase service role key:
 
 ```bash
 export SUPABASE_RECOMMENDATIONS_KEY="<service-role-key>"
 ```
 
-3. Run inference with Supabase upsert enabled:
+1. Run inference with Supabase upsert enabled:
 
 ```bash
 python local_inference.py --tickers AAPL MSFT NVDA --write-supabase
@@ -304,23 +304,6 @@ Then run **Daily Model Recommendations** manually from the GitHub Actions tab
 once to confirm it can pull the Kaggle model artifacts, update `historic_data`,
 and upsert `model_recommendations`. After that it runs daily on the cron
 schedule in `.github/workflows/daily-model-recommendations.yml`.
-
----
-
-## IBM Granite Baseline
-
-The IBM Granite cells load `ibm-granite/granite-timeseries-patchtst` as a
-zero-shot forecaster, convert the first five forecasted closes into up/flat/down
-classes, and compare those to the trained classifiers.
-
-To enable this section:
-
-1. Uncomment the `granite-tsfm` line in `requirements.txt`.
-2. Reinstall: `pip install -r requirements.txt` (local) or add `%pip install granite-tsfm` to the Kaggle notebook.
-3. Set `RUN_GRANITE_BASELINE = True` in the notebook config cell.
-
-LoRA / `peft` are included for parity with the reference notebook but are not
-used by the from-scratch classifier.
 
 ---
 
