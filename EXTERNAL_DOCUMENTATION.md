@@ -446,3 +446,64 @@ Application-level safeguards:
 The database architecture uses Supabase as the backbone for both the application and the model pipeline. User identity and ownership are handled through Supabase Auth, `profiles`, portfolios, and watchlists. Market history and fundamentals are shared data sources. The Python model pipeline reads those sources and publishes recommendations. The Next.js dashboard reads the latest database state, performs user mutations through server actions, and uses internal API routes for fresh recommendation and market-data views.
 
 In short: Supabase is the central integration layer that lets the finance dashboard, model training workflow, and automation system operate as one project without tightly coupling their code.
+
+# System Overview
+
+## Algorithms
+
+At the core of the system is a model called **PatchTST** (Patch Time Series Transformer). A "transformer" is the same family of AI architecture that powers well-known tools like ChatGPT, except instead of reading and generating text, this version reads sequences of numbers (stock prices, trading volumes, financial ratios) and learns to recognize patterns in how they change over time.
+
+The project runs two versions of this model side by side, each focused on a different kind of information:
+
+- **Technical model** — looks at about six months of daily price and volume history for a stock and predicts whether its price will go up, down, or stay flat over the next several trading days.
+- **Fundamental model** — looks at roughly three years of a company's quarterly financial results (profitability, growth, debt levels, and similar measures) and predicts whether the stock will move up, down, or stay flat over the following quarter.
+
+Both models produce the same simple kind of output: a prediction of **down**, **flat**, or **up**, along with a confidence score. Those predictions are what ultimately get shown to users as stock recommendations on the website.
+
+---
+
+## How It Works
+
+Turning raw financial data into a prediction happens in a handful of steps:
+
+1. **Gather historical data** — daily price/volume history and quarterly company financials are collected for every company in the S&P 500.
+2. **Break it into patches** — rather than looking at one day at a time, the data is split into small overlapping chunks of consecutive time periods (e.g., eight days at a time). This helps the model notice short-term trends, not just single data points.
+3. **Feed it through the transformer** — these chunks are passed through the transformer, which learns which patterns in the past tend to be followed by a stock going up, down, or staying flat.
+4. **Produce a prediction** — the model outputs the likelihood of each outcome (down / flat / up) for a given stock and time horizon.
+5. **Surface the best opportunities** — predictions with the highest confidence in an "up" move are highlighted to users as recommended stocks to look into.
+
+---
+
+## Running It: Notebooks & Kaggle
+
+The models are built and trained inside **Jupyter notebooks** — interactive documents that mix code, results, and explanations — which make it easy to experiment with the model and visualize how well it's learning.
+
+Training a transformer model on years of stock data requires significant computing power, particularly a GPU suited for machine learning. To address this, the team uses **Kaggle**, a free online platform that provides cloud GPUs and hosts shared datasets.
+
+The day-to-day workflow looks like this:
+
+1. Push the notebook from the project repository up to Kaggle using Kaggle's command-line tool.
+2. Kaggle runs the notebook on a cloud GPU, training the model against the shared S&P 500 dataset.
+3. Once training finishes, the trained model files are pulled back down from Kaggle.
+4. The trained model is run locally to generate fresh predictions for the latest stock data.
+5. Those new predictions are uploaded to the project's database, ready to be shown on the website.
+
+This setup lets the team train computationally heavy models for free using Kaggle's cloud GPUs, while keeping the day-to-day website running on its own infrastructure.
+
+---
+
+## Components
+
+The system is made up of several pieces that each handle one part of the journey from raw data to an on-screen recommendation. Information flows through the system as follows:
+
+| Component | Role |
+|---|---|
+| **Data collection scripts** | Pull daily stock prices and quarterly company financials for the S&P 500 from public sources (Yahoo Finance, Wikipedia) and store them centrally. |
+| **Database (Supabase)** | Acts as the central storage hub, holding raw historical data, model predictions, and user information such as portfolios and watchlists. |
+| **Kaggle notebooks (training)** | Use the stored historical data to train the two PatchTST models on cloud GPUs, producing trained model files as the end result. |
+| **Local inference scripts** | Load the trained models, run them on the most recent data to generate up-to-date down/flat/up predictions with confidence scores, and save those predictions back to the database. |
+| **Website backend (API routes)** | Reads the latest predictions from the database and serves them to the website in an organized, filterable form (e.g., most confident "up" predictions first). |
+| **Website frontend (dashboard & stock pages)** | Displays recommended stocks to users in a friendly interface; clicking a recommendation takes the user to a detailed page for that stock. |
+
+In short, data flows in one direction through the system: raw market data is collected and stored → used to train models on Kaggle → turned into predictions by running those models locally → saved back to the database → displayed to users through the website.
+
